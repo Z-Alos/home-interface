@@ -15,7 +15,7 @@ app.listen(PORT, () => {
 
 //Arduino Setup
 let portIsOpen = false;
-const relay = [false ,true];
+const relay = [false,false];
 
 const port = new SerialPort({path: '/dev/ttyACM0', baudRate: 9600 });
 // const parser = port.pipe(new ReadLine({ delimeter: '\n' }));
@@ -32,10 +32,8 @@ app.get('/', (req, res) => {
 
 app.get('/relay/:id/toggle', (req, res) => {
     const id = parseInt(req.params.id);
-    if(relay[id] === undefined) return res.status(404).json({ error: "Relay not found" });;
+    if(relay[id - 1] === undefined) return res.status(404).json({ error: "Relay not found" });;
     
-    //implement toggle for arduino
-
     if(portIsOpen){
         port.write(JSON.stringify({ relayId: id }), (err) => {
             if(err) console.error("Something went wrong: ", err);

@@ -1,4 +1,4 @@
-<!DOCTYPE>
+<!DOCTYPE html>
 <html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <head>
@@ -7,6 +7,11 @@
         <script defer src="./middleman.js"></script>
 </head>
     <body>
-        <button id="light1" type="submit">Light: On</button>
+        <div id="container">
+            <div id="switches">
+                <button id="light1" class="switch" type="submit">Light: <span class="state">OFF</span></button>
+                <button id="light2" class="switch" type="submit">Fan: <span class="state">OFF</span></button>
+            </div>
+        </div>
     </body>
 </html>
