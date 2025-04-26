@@ -3,7 +3,7 @@ import { SerialPort } from "serialport";
 import path from 'path';
 // import ReadLine from "@serialport/parser-readline"
 
-//express
+// express
 const app = express();
 app.use(express.static('./'));
 
@@ -13,7 +13,7 @@ app.listen(PORT, () => {
 });
 
 
-//Arduino Setup
+// Arduino Setup
 let portIsOpen = false;
 const relay = [false,false];
 
@@ -25,7 +25,7 @@ port.on("open", () => {
     console.log("Arduino's ready babes!!!");
 });
 
-//Routes
+// Routes
 app.get('/', (req, res) => {
     res.sendFile(path.resolve('./index.html'));
 });
@@ -34,16 +34,51 @@ app.get('/relay/:id/toggle', (req, res) => {
     const id = parseInt(req.params.id);
     if(relay[id - 1] === undefined) return res.status(404).json({ error: "Relay not found" });;
     
-    if(portIsOpen){
-        port.write(JSON.stringify({ relayId: id }), (err) => {
-            if(err) console.error("Something went wrong: ", err);
-            else "processing...";
-        });
+    handle_relay([id]);
+
+    relay[id] = !relay[id];
+    res.json({id, relayStatus: relay[id] ? "ON" : "OFF"});
+});
+
+// Protocols
+app.get('/protocol/:id', (req, res) => {
+    const id = parseInt(req.params.id);
+    if(id !== 0 && id !== 1) return res.status(404).json({ error: "Invalid Protocol" });;
+    
+    const protocol_1 = [1, 2];
+    const protocol_2 = [1, 2];
+
+    switch (id) {
+        case 0:
+            handle_relay(protocol_1); 
+            break;
+
+        case 1:
+            handle_relay(protocol_2); 
+            break;
     }
 
     relay[id] = !relay[id];
     res.json({id, relayStatus: relay[id] ? "ON" : "OFF"});
 });
 
+// Functions
+async function handle_relay(id) {
+    if(portIsOpen){
+        for (const ID of id) {
+            port.write(JSON.stringify({ relayId: ID }), (err) => {
+                if(err) console.error("Something went wrong: ", err);
+                else "processing...";
+            });
+            console.log(`Toggling Relay ${ID}...`);
+            await sleep(1000);
+        }
+    }
+}
+
+// Utility Functions
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 
