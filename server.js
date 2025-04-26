@@ -44,6 +44,8 @@ app.get('/relay/:id/toggle', (req, res) => {
 app.get('/protocol/:id', (req, res) => {
     const id = parseInt(req.params.id);
     if(id !== 0 && id !== 1) return res.status(404).json({ error: "Invalid Protocol" });;
+
+    console.log("Initializing Protocol", id)
     
     const protocol_1 = [1, 2];
     const protocol_2 = [1, 2];
