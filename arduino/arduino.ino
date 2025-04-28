@@ -9,6 +9,7 @@ void setup() {
     digitalWrite(pin[i], HIGH);  
   }
   Serial.begin(9600);
+  Serial.setTimeout(100);
 }
 
 void loop() {
@@ -35,5 +36,7 @@ void loop() {
       Serial.println(F("Invalid relayId"));
     }
   }
+
+  delay(20); // Let Arduino Rest
 }
 
