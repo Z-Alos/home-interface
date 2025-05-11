@@ -6,7 +6,8 @@ const int totalRelay = sizeof(pin) / sizeof(pin[0]);
 void setup() {
   for (int i = 0; i < totalRelay; i++) {
     pinMode(pin[i], OUTPUT);
-    digitalWrite(pin[i], HIGH);  
+    digitalWrite(pin[i], LOW);  
+    delay(1000);
   }
   Serial.begin(9600);
   Serial.setTimeout(100);
