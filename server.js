@@ -1,11 +1,13 @@
 import express from "express";
+import cors from "cors";
 import { SerialPort } from "serialport";
 import path from 'path';
 // import ReadLine from "@serialport/parser-readline"
 
 // express
 const app = express();
-app.use(express.static('./'));
+app.use(express.static('./public/'));
+app.use(cors()); //We are badass
 
 const PORT = 6969;
 app.listen(PORT, () => {
@@ -27,10 +29,11 @@ port.on("open", () => {
 
 // Routes
 app.get('/', (req, res) => {
-    res.sendFile(path.resolve('./index.html'));
+    res.sendFile(path.resolve('./public/index.html'));
 });
 
 app.get('/relay/:id/toggle', (req, res) => {
+    console.log("🔔 Relay toggle hit:", req.params.id);
     const id = parseInt(req.params.id);
     if(relay[id - 1] === undefined) return res.status(404).json({ error: "Relay not found" });;
     
