@@ -18,11 +18,12 @@ app.listen(PORT, () => {
 let portIsOpen = false;
 const relays = [true, true];
 
+const port = new SerialPort({path: '/dev/ttyACM0', baudRate: 9600 });
+const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+
 connectToArduino();
 
 function connectToArduino(){
-    const port = new SerialPort({path: '/dev/ttyACM0', baudRate: 9600 });
-    const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }))
 
     port.on("open", () => {
         portIsOpen = true;
