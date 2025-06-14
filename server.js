@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import { SerialPort } from "serialport";
 import path from 'path';
-// import ReadLine from "@serialport/parser-readline"
+import { ReadlineParser } from '@serialport/parser-readline'
 
 // express
 const app = express();
@@ -17,14 +17,34 @@ app.listen(PORT, () => {
 
 // Arduino Setup
 let portIsOpen = false;
-const relay = [false,false];
+const relays = [true, true];
 
 const port = new SerialPort({path: '/dev/ttyACM0', baudRate: 9600 });
-// const parser = port.pipe(new ReadLine({ delimeter: '\n' }));
+const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }))
 
 port.on("open", () => {
     portIsOpen = true;
     console.log("Arduino's ready babes!!!");
+});
+
+parser.on("data", data => {
+    console.log(data);
+    try {
+        const jsonData = JSON.parse(data);
+        console.log(jsonData);
+    } catch (error) {
+        
+    }
+});
+
+// Fetching Relay State
+port.write(JSON.stringify({ expect: "relayState" }) + '\n', (err) => {
+    if(err){
+        console.log("Unable to fetch Relay State: ", err);
+    }
+    else{
+        console.log("Fetching Relay State");
+    }
 });
 
 // Routes
@@ -32,15 +52,27 @@ app.get('/', (req, res) => {
     res.sendFile(path.resolve('./public/index.html'));
 });
 
-app.get('/relay/:id/toggle', (req, res) => {
-    console.log("🔔 Relay toggle hit:", req.params.id);
-    const id = parseInt(req.params.id);
-    if(relay[id - 1] === undefined) return res.status(404).json({ error: "Relay not found" });;
-    
-    handle_relay([id]);
+app.get('/relay/status', (req, res) => {
+    let relayStatus = {};
+    for (let i = 0; i < relays.length; i++) {
+        relayStatus[`statusRelay${i}`] = relays[i] ? "on" : "off";
+    }
 
-    relay[id] = !relay[id];
-    res.json({id, relayStatus: relay[id] ? "ON" : "OFF"});
+    res.json(relayStatus);
+});
+
+app.get('/relay/:id/:operation', (req, res) => {
+    const id = parseInt(req.params.id);
+    const operation = req.params.operation;
+
+    if(relays[id] === undefined) return res.status(404).json({ error: "Relay not found" });;
+
+    const command = [{relayId: id, relayOperation: operation}];
+    
+    handle_relay(command);
+
+    relays[id] = !relays[id];
+    res.json({id, relayStatus: relays[id] ? "on" : "off"});
 });
 
 // Protocols
@@ -50,8 +82,8 @@ app.get('/protocol/:id', (req, res) => {
 
     console.log("Initializing Protocol", id)
     
-    const protocol_1 = [1, 2];
-    const protocol_2 = [1, 2];
+    const protocol_1 = [0, 1];
+    const protocol_2 = [0, 1];
 
     switch (id) {
         case 0:
@@ -63,19 +95,22 @@ app.get('/protocol/:id', (req, res) => {
             break;
     }
 
-    relay[id] = !relay[id];
-    res.json({id, relayStatus: relay[id] ? "ON" : "OFF"});
+    relays[id] = !relays[id];
+    res.json({id, relayStatus: relays[id] ? "on" : "off"});
 });
 
 // Functions
-async function handle_relay(id) {
+async function handle_relay(commands) {
     if(portIsOpen){
-        for (const ID of id) {
-            port.write(JSON.stringify({ relayId: ID }), (err) => {
+        for (const command of commands) {
+            const data = JSON.stringify({ expect: "operation", relayId: command.relayId, relayOperation: command.relayOperation}); // Operation (0: Low, 1: High)
+             
+            console.log(data);
+            port.write(data, (err) => {
                 if(err) console.error("Something went wrong: ", err);
                 else "processing...";
             });
-            console.log(`Toggling Relay ${ID}...`);
+            console.log(`Toggling Relay ${command.relayId}...`);
             await sleep(1000);
         }
     }

@@ -15,9 +15,10 @@ void setup() {
 
 void loop() {
   if (Serial.available()) {
-    StaticJsonDocument<200> doc;
+    String input = Serial.readStringUntil('\n'); 
 
-    DeserializationError error = deserializeJson(doc, Serial);
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, input);
 
     if (error) {
       Serial.print(F("deserializeJson() failed: "));
@@ -25,16 +26,36 @@ void loop() {
       return;
     }
 
-    int relayId = doc["relayId"];
-    int relayIndex = relayId - 1;  // Convert to 0-based index
+    const char* expect = doc["expect"];
 
-    if (relayIndex >= 0 && relayIndex < totalRelay) {
-      digitalWrite(pin[relayIndex], !digitalRead(pin[relayIndex]));
-      Serial.print("Toggled relay: ");
-      Serial.println(relayId);
+    if(String(expect) == "relayState"){
+      // Serial.println("{relayId: 2, relayStatus: 1}");
+      for (int i = 0; i < totalRelay; i++) {
+        Serial.println("{\"relayId\": " + String(i) + ", \"relayStatus\": " + String(digitalRead(pin[i])) + "}");
+        // Serial.println("Fuck Me");
+      }
     }
-    else {
-      Serial.println(F("Invalid relayId"));
+
+    else if(String(expect) == "operation"){
+      int relayId = doc["relayId"];
+      String relayOperation = doc["relayOperation"];
+      Serial.println(relayOperation);
+      int relayIndex = relayId; 
+
+      if (relayIndex >= 0 && relayIndex < totalRelay) {
+        if(relayOperation == "turnOff"){
+          digitalWrite(pin[relayIndex], HIGH);
+        }
+        else{
+          digitalWrite(pin[relayIndex], LOW);
+        }
+
+        Serial.println("{\"relayId\": " + String(relayId) + ", \"relayStatus\": " + String(digitalRead(pin[relayIndex])) + "}");
+        Serial.println("Toggled relay: " + String(relayId));
+      }
+      else {
+        Serial.println(F("Invalid relayId"));
+      }
     }
   }
 
