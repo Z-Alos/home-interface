@@ -14,38 +14,53 @@ app.listen(PORT, () => {
     console.log("Server Listening Like Google On Port:", PORT);
 });
 
-
 // Arduino Setup
 let portIsOpen = false;
 const relays = [true, true];
 
-const port = new SerialPort({path: '/dev/ttyACM0', baudRate: 9600 });
-const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+connectToArduino();
 
-port.on("open", () => {
-    portIsOpen = true;
-    console.log("Arduino's ready babes!!!");
-});
+function connectToArduino(){
+    const port = new SerialPort({path: '/dev/ttyACM0', baudRate: 9600 });
+    const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }))
 
-parser.on("data", data => {
-    console.log(data);
-    try {
-        const jsonData = JSON.parse(data);
-        console.log(jsonData);
-    } catch (error) {
-        
-    }
-});
+    port.on("open", () => {
+        portIsOpen = true;
+        console.log("Arduino's ready babes!!!");
 
-// Fetching Relay State
-port.write(JSON.stringify({ expect: "relayState" }) + '\n', (err) => {
-    if(err){
-        console.log("Unable to fetch Relay State: ", err);
-    }
-    else{
-        console.log("Fetching Relay State");
-    }
-});
+        port.on("close", () => {
+            portIsOpen = false;
+            console.log("Reconnecting in 3 secs...");
+            setTimeout(connectToArduino, 3000);
+        });
+
+        port.on('error', () => {
+            port.close();
+        });
+
+        parser.on("data", data => {
+            console.log(data);
+            try {
+                const jsonData = JSON.parse(data);
+                console.log(jsonData);
+            } catch (error) {
+
+            }
+        });
+    });
+
+
+    // Fetching Relay State
+    port.write(JSON.stringify({ expect: "relayState" }) + '\n', (err) => {
+        if(err){
+            console.log("Unable to fetch Relay State: ", err);
+        }
+        else{
+            console.log("Fetching Relay State");
+        }
+    });
+}
+
 
 // Routes
 app.get('/', (req, res) => {

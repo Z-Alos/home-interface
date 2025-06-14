@@ -3,14 +3,25 @@ import { db } from "./firebase.js";
 
 let NGROK_DOMAIN = "";
 
-const docRef = doc(db, "config", "ngrok");
+function waitForNgrokURL() {
+  return new Promise((resolve) => {
+    const docRef = doc(db, "config", "ngrok");
 
-onSnapshot(docRef, (doc) => {
-  if (doc.exists()) {
-    const data = doc.data();
-    NGROK_DOMAIN = data.url;
-    console.log("ngrok URL:", data.url);
-  }
+    const unsubscribe = onSnapshot(docRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        NGROK_DOMAIN = data.url;
+        console.log("ngrok URL:", data.url);
+
+        unsubscribe(); 
+        resolve(NGROK_DOMAIN);
+      }
+    });
+  });
+}
+
+waitForNgrokURL().then(() => {
+  fetchRelayState();
 });
 
 // relay0 -> tubelight
@@ -26,8 +37,6 @@ roomStartupProtocol.addEventListener("click", (e) => protocol(e, 0));
 
 const roomShutdownProtocol = document.getElementById("room-shutdown-protocol");
 roomShutdownProtocol.addEventListener("click", (e) => protocol(e, 1));
-
-fetchRelayState();
 
 async function fetchRelayState() {
     const relaysDOM = [relay0, relay1]; 
