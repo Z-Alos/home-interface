@@ -18,12 +18,14 @@ app.listen(PORT, () => {
 let portIsOpen = false;
 const relays = [true, true];
 
-const port = new SerialPort({path: '/dev/ttyACM0', baudRate: 9600 });
-const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+let port;
+let parser; 
 
 connectToArduino();
 
 function connectToArduino(){
+    port = new SerialPort({path: '/dev/ttyACM0', baudRate: 9600 });
+    parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
 
     port.on("open", () => {
         portIsOpen = true;
@@ -40,26 +42,27 @@ function connectToArduino(){
         });
 
         parser.on("data", data => {
-            console.log(data);
+            console.log("Serial Parser (Raw): ",data);
             try {
                 const jsonData = JSON.parse(data);
-                console.log(jsonData);
+                // console.log("Serial Parser (Json): ",jsonData);
             } catch (error) {
 
             }
         });
     });
 
-
     // Fetching Relay State
-    port.write(JSON.stringify({ expect: "relayState" }) + '\n', (err) => {
-        if(err){
-            console.log("Unable to fetch Relay State: ", err);
-        }
-        else{
-            console.log("Fetching Relay State");
-        }
-    });
+    // setTimeout(()=>{
+    //     port.write(JSON.stringify({ expect: "relayState" }) + '\n', (err) => {
+    //         if(err){
+    //             console.log("Unable to fetch Relay State: ", err);
+    //         }
+    //         else{
+    //             console.log("Fetching Relay State");
+    //         }
+    //     });
+    // }, 4000);
 }
 
 
@@ -79,7 +82,7 @@ app.get('/relay/status', (req, res) => {
 
 app.get('/relay/:id/:operation', (req, res) => {
     const id = parseInt(req.params.id);
-    const operation = req.params.operation;
+    const operation = req.params.operation;  // Operation (turnOn, turnOff)
 
     if(relays[id] === undefined) return res.status(404).json({ error: "Relay not found" });;
 
@@ -87,7 +90,6 @@ app.get('/relay/:id/:operation', (req, res) => {
     
     handle_relay(command);
 
-    relays[id] = !relays[id];
     res.json({id, relayStatus: relays[id] ? "on" : "off"});
 });
 
@@ -98,8 +100,8 @@ app.get('/protocol/:id', (req, res) => {
 
     console.log("Initializing Protocol", id)
     
-    const protocol_1 = [0, 1];
-    const protocol_2 = [0, 1];
+    const protocol_1 = [{relayId: 0, relayOperation: "turnOn"}, {relayId: 1, relayOperation: "turnOn"}];
+    const protocol_2 = [{relayId: 0, relayOperation: "turnOff"}, {relayId: 1, relayOperation: "turnOff"}];
 
     switch (id) {
         case 0:
@@ -111,21 +113,20 @@ app.get('/protocol/:id', (req, res) => {
             break;
     }
 
-    relays[id] = !relays[id];
-    res.json({id, relayStatus: relays[id] ? "on" : "off"});
 });
 
 // Functions
 async function handle_relay(commands) {
     if(portIsOpen){
         for (const command of commands) {
-            const data = JSON.stringify({ expect: "operation", relayId: command.relayId, relayOperation: command.relayOperation}); // Operation (0: Low, 1: High)
+            const data = JSON.stringify({ expect: "operation", relayId: command.relayId, relayOperation: command.relayOperation});
              
             console.log(data);
             port.write(data, (err) => {
                 if(err) console.error("Something went wrong: ", err);
                 else "processing...";
             });
+            relays[command.relayId] = command.relayOperation === "turnOn" ? true : false;
             console.log(`Toggling Relay ${command.relayId}...`);
             await sleep(1000);
         }

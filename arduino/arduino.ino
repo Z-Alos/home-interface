@@ -29,10 +29,8 @@ void loop() {
     const char* expect = doc["expect"];
 
     if(String(expect) == "relayState"){
-      // Serial.println("{relayId: 2, relayStatus: 1}");
       for (int i = 0; i < totalRelay; i++) {
         Serial.println("{\"relayId\": " + String(i) + ", \"relayStatus\": " + String(digitalRead(pin[i])) + "}");
-        // Serial.println("Fuck Me");
       }
     }
 
