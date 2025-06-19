@@ -6,7 +6,7 @@ import { ReadlineParser } from '@serialport/parser-readline'
 
 // express
 const app = express();
-app.use(express.static('./public/'));
+app.use(express.static('./interface/'));
 app.use(cors()); //We are badass
 
 const PORT = 6969;
@@ -68,7 +68,7 @@ function connectToArduino(){
 
 // Routes
 app.get('/', (req, res) => {
-    res.sendFile(path.resolve('./public/index.html'));
+    res.sendFile(path.resolve('./interface/index.html'));
 });
 
 app.get('/relay/status', (req, res) => {
